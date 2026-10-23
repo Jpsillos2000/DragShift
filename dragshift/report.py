@@ -95,6 +95,10 @@ def summarize(action: str, srcs: list, outs: list, extra: str = "") -> Result:
             dur = media.human_duration(media.duration(o0))
             if dur:
                 bits.append(dur)
+            info = media.probe(o0) if o0.suffix.lower() != ".gif" else None
+            if info and info.has_video and not info.has_audio:
+                src_info = media.probe(src)
+                bits.append("no sound" if src_info and not src_info.has_audio else "no sound in result")
         bits.append(human_size(after))
         return Result(title, " · ".join(bits), outs, srcs)
 

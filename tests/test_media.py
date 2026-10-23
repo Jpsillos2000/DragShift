@@ -117,3 +117,23 @@ def test_non_media_files_stay_unsupported(tmp_path):
     junk.write_bytes(b"\x00\x01 not media " * 500)
     assert category(junk) is None
     assert category(tmp_path) is None  # folders too
+
+
+def test_surround_audio_survives_webm(tmp_path):
+    src = tmp_path / "Surround.mkv"
+    ff("-f", "lavfi", "-i", "testsrc=size=160x120:rate=10:duration=1",
+       "-f", "lavfi", "-i", "sine=duration=1,pan=5.1|c0=c0|c1=c0|c2=c0|c3=c0|c4=c0|c5=c0",
+       "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "ac3", "-shortest", str(src))
+    out = convert.convert(src, "video", "WEBM")[0]
+    assert media.probe(out).has_audio
+
+
+@pytest.mark.parametrize("target", ["MP4", "MKV", "WEBM", "MOV", "AVI"])
+def test_sound_is_kept(video, target):
+    assert media.probe(convert.convert(video, "video", target)[0]).has_audio
+
+
+def test_report_flags_missing_sound(silent_video):
+    from dragshift import report
+    out = convert.convert(silent_video, "video", "MKV")
+    assert "no sound" in report.summarize("convert:MKV", [silent_video], out).detail

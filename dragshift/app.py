@@ -252,7 +252,7 @@ class DragShiftApp(QObject):
             elif cat == "video" and t in media.VIDEO_TO_AUDIO:
                 hint = "Extract audio"
             elif cat == "video" and t == "GIF":
-                hint = "Animated clip"
+                hint = "Animated clip · no sound"
             convert_items.append(Item(t, key=f"convert:{t}", hint=hint))
         rings: dict[str, list[Item]] = {"Convert": convert_items}
         if cat == "image":

@@ -220,20 +220,28 @@ def convert_media(src: str | Path, cat: str, target: str) -> list[Path]:
     tmp = out.with_name(f".~{out.name}.part")
 
     maps = ["-map", "0:a:0", "-map_metadata", "0"] if to_audio else \
-           ["-map", "0:v:0", "-map", "0:a:0?", "-sn"]
+           ["-map", "0:v:0", "-map", "0:a?", "-sn"]
     if to_audio:
         maps.insert(0, "-vn")
     try:
         # MKV takes almost any stream: try a lossless remux first, re-encode only if that fails
         attempts = [["-c", "copy"]] if target == "MKV" and cat == "video" else []
         attempts.append(codec_args)
+        if not to_audio:
+            attempts.append(codec_args + ["-ac", "2"])  # e.g. 5.1 sound that libopus/mp3 can't take as-is
         last = ""
         for codec in attempts:
             r = _run(["-y", "-i", str(src), *maps, *codec, "-f", muxer, str(tmp)])
-            if r.returncode == 0 and tmp.exists() and tmp.stat().st_size > 0:
+            ok = r.returncode == 0 and tmp.exists() and tmp.stat().st_size > 0
+            if ok and not to_audio and target != "GIF" and info and info.has_audio:
+                got = _probe(str(tmp), tmp.stat().st_mtime)
+                ok = bool(got and got.has_audio)  # never hand back a silent copy of a video with sound
+                if not ok:
+                    last = "The sound track was lost during conversion."
+            if ok:
                 os.replace(tmp, out)
                 return [out]
-            last = r.stderr.decode("utf-8", "replace")
+            last = r.stderr.decode("utf-8", "replace") or last
         raise UserError(_fail_message(last))
     except subprocess.TimeoutExpired:  # pragma: no cover
         raise UserError("FFmpeg took too long.")
