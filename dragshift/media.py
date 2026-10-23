@@ -15,12 +15,21 @@ from .util import UserError, sibling
 # Anything FFmpeg can read counts as input; the lists below only decide the menu category.
 AUDIO_EXTS = {".mp3", ".wav", ".flac", ".aac", ".m4a", ".m4b", ".ogg", ".oga", ".opus", ".wma",
               ".aiff", ".aif", ".aifc", ".ac3", ".eac3", ".dts", ".amr", ".ape", ".wv", ".mka",
-              ".mp2", ".au", ".caf", ".spx", ".tta", ".mpc", ".w64", ".voc", ".gsm", ".ra"}
+              ".mp2", ".mp1", ".au", ".snd", ".caf", ".spx", ".tta", ".mpc", ".w64", ".voc", ".gsm", ".ra",
+              ".m4r", ".m4p", ".aax", ".oma", ".tak", ".dsf", ".dff", ".mlp", ".thd", ".sbc", ".adts"}
 VIDEO_EXTS = {".mp4", ".mkv", ".webm", ".mov", ".avi", ".wmv", ".flv", ".m4v", ".mpg", ".mpeg",
               ".mpe", ".3gp", ".3g2", ".ts", ".mts", ".m2ts", ".vob", ".ogv", ".asf", ".f4v",
-              ".rm", ".rmvb", ".divx", ".mxf", ".dv", ".qt", ".yuv", ".y4m"}
+              ".rm", ".rmvb", ".divx", ".xvid", ".mxf", ".dv", ".qt", ".yuv", ".y4m", ".mpeg4", ".mp4v",
+              ".m1v", ".m2v", ".mpv", ".mpv2", ".mjpeg", ".mjpg", ".h264", ".264", ".h265", ".265",
+              ".hevc", ".avc", ".ogm", ".amv", ".wtv", ".dvr-ms", ".trp", ".tp", ".m2t", ".evo", ".gxf",
+              ".nut", ".nsv", ".roq", ".bik", ".smk", ".swf", ".vro", ".mod", ".tod", ".mk3d", ".ivf"}
 # containers that can hold either: look inside to decide
-AMBIGUOUS_EXTS = {".mp4", ".mkv", ".webm", ".ogg", ".3gp", ".3g2", ".asf", ".ts", ".mov", ".m4a"}
+AMBIGUOUS_EXTS = {".mp4", ".mkv", ".webm", ".ogg", ".3gp", ".3g2", ".asf", ".ts", ".mov", ".m4a",
+                  ".mpeg4", ".mp4v", ".ogm", ".nut", ".mod"}
+# never worth probing: these are other DragShift categories or plainly not media
+_NOT_MEDIA_EXTS = {".png", ".jpg", ".jpeg", ".webp", ".heic", ".heif", ".tif", ".tiff", ".avif", ".bmp",
+                   ".ico", ".pdf", ".docx", ".txt", ".md", ".csv", ".log", ".json", ".xml", ".html", ".htm",
+                   ".exe", ".dll", ".zip", ".lnk", ".py", ".js", ".iso", ".dmg", ".msi", ".app"}
 
 # target -> (file extension, FFmpeg muxer, codec arguments)
 _X264 = ["-c:v", "libx264", "-crf", "20", "-preset", "medium", "-pix_fmt", "yuv420p",
@@ -149,6 +158,15 @@ def kind(path: str | Path) -> str | None:
         return "video"
     if ext in AUDIO_EXTS:
         return "audio"
+    if ext not in _NOT_MEDIA_EXTS and available():
+        # unknown extension (.mpeg4 renamed, .bin, no extension…): let FFmpeg look inside
+        try:
+            if Path(path).is_file() and Path(path).stat().st_size > 1024:
+                info = probe(path)
+                if info:
+                    return "video" if info.has_video else "audio" if info.has_audio else None
+        except OSError:
+            pass
     return None
 
 

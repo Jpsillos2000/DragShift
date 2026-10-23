@@ -22,9 +22,7 @@ def category(path: str | Path) -> str | None:
     if ext in TEXT_EXTS:
         return "text"
     from . import media
-    if ext in media.AUDIO_EXTS | media.VIDEO_EXTS:
-        return media.kind(path)
-    return None
+    return media.kind(path)
 
 
 def resolve_shortcuts(paths: list[str]) -> list[str]:

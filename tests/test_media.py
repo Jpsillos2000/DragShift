@@ -98,3 +98,22 @@ def test_report_summary(video):
     out = convert.convert(video, "video", "MKV")
     r = report.summarize("convert:MKV", [video], out)
     assert "MP4 → MKV" in r.title and "0:01" in r.detail
+
+
+def test_unusual_extensions_are_recognised(video, wav, tmp_path):
+    import shutil
+    for name, cat in (("clip.mpeg4", "video"), ("clip.bin", "video"), ("clip", "video"),
+                      ("tone.xyz", "audio")):
+        dst = tmp_path / name
+        shutil.copy(video if cat == "video" else wav, dst)
+        assert category(dst) == cat, name
+        assert convert.targets_for(cat, dst.suffix)
+    out = convert.convert(tmp_path / "clip.mpeg4", "video", "MP4")[0]
+    assert media.probe(out).has_video
+
+
+def test_non_media_files_stay_unsupported(tmp_path):
+    junk = tmp_path / "data.bin"
+    junk.write_bytes(b"\x00\x01 not media " * 500)
+    assert category(junk) is None
+    assert category(tmp_path) is None  # folders too
