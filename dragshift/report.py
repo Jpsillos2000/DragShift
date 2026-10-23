@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from . import media
 from .util import category, file_size, human_size
 
 
@@ -90,6 +91,10 @@ def summarize(action: str, srcs: list, outs: list, extra: str = "") -> Result:
             n = pages(o0)
             if n:
                 bits.append(f"{n} page{'s' if n != 1 else ''}")
+        if category(o0) in ("audio", "video") or o0.suffix.lower() in media.AUDIO_EXTS | media.VIDEO_EXTS:
+            dur = media.human_duration(media.duration(o0))
+            if dur:
+                bits.append(dur)
         bits.append(human_size(after))
         return Result(title, " · ".join(bits), outs, srcs)
 

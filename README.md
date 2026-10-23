@@ -49,7 +49,7 @@ Open **DragShift** from the app menu. It sits in the panel's notification area, 
 
 ## How to use
 
-1. Start dragging a file (an image, PDF, Word or text file; desktop shortcuts to one work too) in File Explorer, Finder, your Linux file manager or on the desktop.
+1. Start dragging a file (an image, PDF, Word, text, audio or video file; desktop shortcuts to one work too) in File Explorer, Finder, your Linux file manager or on the desktop.
 2. Press **Shift**. The menu opens under your cursor.
 3. Drop the file on a slice. The result is saved **next to the original**, and the original is never changed.
 4. To switch between **Convert** and **Tools**, tap **Shift** again.
@@ -66,6 +66,8 @@ You can also right-click a file → **DragShift…**, use **Send to → DragShif
 | PDF | JPG or PNG (one per page), DOCX, TXT | Compress · Split · Rotate · Merge (drop several) · **Protect** (AES-256 password) · **Extract images** · Metadata |
 | Word (.docx) | PDF (uses Microsoft Word if it's installed, otherwise a built-in renderer), TXT | — |
 | Text (.txt, .md, .csv…) | PDF, DOCX | — |
+| Audio (MP3, WAV, FLAC, M4A, AAC, OGG, OPUS, WMA, AIFF, AC3, APE, MKA… anything FFmpeg can read) | MP3, WAV, FLAC, M4A, AAC, OGG, OPUS, WMA, AIFF | — |
+| Video (MP4, MKV, WEBM, MOV, AVI, WMV, FLV, M4V, MPG, 3GP, TS, VOB… anything FFmpeg can read) | MP4, MKV (instant lossless remux when possible), WEBM, MOV, AVI, GIF, or just the soundtrack as MP3, M4A, WAV or FLAC | — |
 
 **Settings** (tray menu): trigger key (Shift, Ctrl or Alt), where results go (next to the original or a `DragShift` subfolder), JPG/WebP quality, PDF → image resolution, and start at login.
 
@@ -100,6 +102,8 @@ DragShift is free. If it saves you time, you can leave a tip on Cash App: [**$At
 pip install -r requirements.txt
 python -m dragshift
 ```
+
+Audio and video conversion uses FFmpeg. `pip install -r requirements.txt` brings a copy via `imageio-ffmpeg`; otherwise DragShift uses `ffmpeg` from your PATH, or the file named in the `DRAGSHIFT_FFMPEG` environment variable. Without FFmpeg, audio and video files simply offer no conversions.
 
 On Linux, PySide6 also needs the Qt XCB libraries: `sudo apt install libxcb-cursor0 libxkbcommon-x11-0`.
 

@@ -14,7 +14,7 @@ from PySide6.QtGui import (QAction, QColor, QCursor, QDesktopServices, QGuiAppli
 from PySide6.QtNetwork import QLocalServer, QLocalSocket
 from PySide6.QtWidgets import QApplication, QFileDialog, QMenu, QSystemTrayIcon, QWidget
 
-from . import __version__, convert, glass, imaging, report, tools
+from . import __version__, convert, glass, imaging, media, report, tools
 from .radial import Item, RadialMenu
 from .settings import Settings, SettingsWindow, WelcomeWindow, TRIGGERS
 from .toasts import ToastStack
@@ -43,7 +43,12 @@ HINTS = {
 FORMAT_HINTS = {"JPG": "Small, universal", "PNG": "Lossless · transparency", "WEBP": "Smallest for web",
                 "HEIC": "iPhone format", "TIFF": "Print · archival", "AVIF": "Next-gen, tiny",
                 "BMP": "Uncompressed", "PDF": "Document", "ICO": "Windows icon", "GIF": "Legacy web",
-                "DOCX": "Editable Word", "TXT": "Plain text"}
+                "DOCX": "Editable Word", "TXT": "Plain text",
+                "MP3": "Universal audio", "WAV": "Uncompressed", "FLAC": "Lossless audio",
+                "M4A": "AAC · Apple", "AAC": "Raw AAC", "OGG": "Vorbis", "OPUS": "Small · speech",
+                "WMA": "Windows audio", "AIFF": "Apple · uncompressed",
+                "MP4": "H.264 · plays anywhere", "MKV": "Lossless remux", "WEBM": "VP9 · web",
+                "MOV": "QuickTime", "AVI": "Legacy video"}
 
 IMAGE_TOOLS = ["Compress", "Resize", "Crop", "Edit", "Annotate", "Redact", "Add BG", "Metadata"]
 PDF_TOOLS = ["Compress", "Split", "Rotate", "Protect", "Extract", "Metadata"]
@@ -244,6 +249,10 @@ class DragShiftApp(QObject):
             hint = FORMAT_HINTS.get(t, "")
             if cat == "image" and t == "PDF" and len(same) > 1:
                 hint = f"{len(same)} images → 1 PDF"
+            elif cat == "video" and t in media.VIDEO_TO_AUDIO:
+                hint = "Extract audio"
+            elif cat == "video" and t == "GIF":
+                hint = "Animated clip"
             convert_items.append(Item(t, key=f"convert:{t}", hint=hint))
         rings: dict[str, list[Item]] = {"Convert": convert_items}
         if cat == "image":
@@ -507,6 +516,11 @@ def selftest() -> int:
             pdf = convert.convert(src, "image", "PDF")[0]
             for t in convert.PDF_TARGETS:
                 convert.convert(pdf, "pdf", t)
+            if media.available():
+                wav = Path(d) / "t.wav"
+                wav.write_bytes(media.silent_wav())
+                for t in convert.targets_for("audio", ".wav"):
+                    convert.convert(wav, "audio", t)
             (Path(d) / "n.txt").write_text("hello")
             docx = convert.convert(Path(d) / "n.txt", "text", "DOCX")[0]
             convert.convert(docx, "docx", "TXT")

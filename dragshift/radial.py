@@ -477,7 +477,7 @@ class RadialMenu(QWidget):
         f.setBold(False)
         p.setFont(f)
         self._text(p, QRectF(c.x() - R_OUT, c.y() - r_mid + 1, 2 * R_OUT, 16),
-                   "Images · PDF · Word · Text", fg_dim, None)
+                   "Images · Docs · Audio · Video", fg_dim, None)
 
     def _paint_fallback(self, p: QPainter, c: QPointF, n: int):
         hub = QPainterPath()
