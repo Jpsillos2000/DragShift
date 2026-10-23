@@ -14,7 +14,7 @@ from PySide6.QtGui import (QAction, QColor, QCursor, QDesktopServices, QGuiAppli
 from PySide6.QtNetwork import QLocalServer, QLocalSocket
 from PySide6.QtWidgets import QApplication, QFileDialog, QMenu, QSystemTrayIcon, QWidget
 
-from . import __version__, convert, documents, glass, imaging, media, report, tools
+from . import __version__, convert, documents, glass, imaging, media, media_tools, report, tools
 from .radial import Item, RadialMenu
 from .settings import Settings, SettingsWindow, WelcomeWindow, TRIGGERS
 from .toasts import ToastStack
@@ -29,7 +29,7 @@ IS_MAC = sys.platform == "darwin"
 from .handoff import ipc_name
 IPC_NAME = ipc_name()
 
-GLYPHS = {"Compress": "⇲", "Metadata": "ⓘ", "Redact": "▮", "Crop": "⌗", "Edit": "☼",
+GLYPHS = {"Trim": "✂", "Compress": "⇲", "Metadata": "ⓘ", "Redact": "▮", "Crop": "⌗", "Edit": "☼",
           "Annotate": "✎", "Add BG": "▣", "Resize": "⤢", "Split": "✂", "Rotate": "⟳",
           "Merge": "⧉", "Protect": "⚿", "Extract": "⧈"}
 
@@ -56,6 +56,12 @@ FORMAT_HINTS = {"JPG": "Small, universal", "PNG": "Lossless · transparency", "W
                 "TAR": "Unix archive", "TAR.GZ": "Gzip tarball", "TAR.XZ": "Smallest tarball",
                 "TAR.BZ2": "Bzip2 tarball", "SRT": "Subtitles", "VTT": "Web subtitles", "ASS": "Styled subtitles"}
 
+MEDIA_HINTS = {
+    "audio": {"Compress": "Smaller file", "Trim": "Cut start and end", "Edit": "Volume · speed · fades",
+              "Merge": "Join into one", "Metadata": "Remove tags"},
+    "video": {"Compress": "Smaller file", "Trim": "Cut start and end", "Edit": "Rotate · speed · sound",
+              "Merge": "Join into one", "Metadata": "Remove tags · location"},
+}
 IMAGE_TOOLS = ["Compress", "Resize", "Crop", "Edit", "Annotate", "Redact", "Add BG", "Metadata"]
 PDF_TOOLS = ["Compress", "Split", "Rotate", "Protect", "Extract", "Metadata"]
 
@@ -263,6 +269,9 @@ class DragShiftApp(QObject):
         rings: dict[str, list[Item]] = {"Convert": convert_items}
         if cat == "image":
             rings["Tools"] = [Item(n, GLYPHS[n], key=f"tool:{n}", hint=HINTS[n]) for n in IMAGE_TOOLS]
+        elif cat in ("audio", "video"):
+            names = ["Compress", "Trim", "Edit"] + (["Merge"] if len(same) > 1 else []) + ["Metadata"]
+            rings["Tools"] = [Item(n, GLYPHS[n], key=f"tool:{n}", hint=MEDIA_HINTS[cat][n]) for n in names]
         elif cat == "pdf":
             names = PDF_TOOLS[:3] + (["Merge"] if len(same) > 1 else []) + PDF_TOOLS[3:]
             rings["Tools"] = [Item(n, GLYPHS[n], key=f"tool:{n}", hint=HINTS[n]) for n in names]
@@ -281,6 +290,9 @@ class DragShiftApp(QObject):
                 verb = f"Converting to {name}…"
                 self.submit(f"convert:{name}", paths,
                             lambda: [o for p in paths for o in convert.convert(p, cat, name)], verb)
+            return
+        if cat in ("audio", "video"):
+            self.run_media_tool(name, paths, cat)
             return
         if cat == "pdf":
             if name == "Merge":
@@ -306,6 +318,30 @@ class DragShiftApp(QObject):
                 self.open_window(tools.ResizeWindow(paths, self.notify))
             else:
                 self.open_window(windows[name](paths[0], self.notify))
+        except UserError as e:
+            self.toasts.error(f"Couldn't open {name}", str(e))
+        except Exception as e:  # noqa: BLE001
+            traceback.print_exc()
+            self.toasts.error(f"Couldn't open {name}", friendly_error(e))
+
+    def run_media_tool(self, name: str, paths: list[str], cat: str):
+        try:
+            if name == "Compress":
+                self.open_window(media_tools.MediaCompressWindow(paths, self.notify, cat))
+            elif name == "Trim":
+                self.open_window(media_tools.TrimWindow(paths[0], self.notify, cat))
+            elif name == "Edit":
+                self.open_window(media_tools.MediaEditWindow(paths[0], self.notify, cat))
+            elif name == "Merge":
+                self.submit("tool:Merge", paths, lambda: [media.merge(paths, cat)], f"Joining {len(paths)} files…")
+            elif name == "Metadata":
+                tags = sorted({k for p in paths for k in media.read_tags(p)})
+                shown = ", ".join(tags[:4]) + ("…" if len(tags) > 4 else "")
+                where = " (includes location)" if any(("location" in t.lower() or "gps" in t.lower()) for t in tags) else ""
+                extra = f"{len(tags)} tag{'s' if len(tags) != 1 else ''} removed: {shown}{where}" if tags \
+                    else "no tags found"
+                self.submit("tool:Metadata", paths, lambda: [media.strip_metadata(p)[0] for p in paths],
+                            "Removing metadata…", extra)
         except UserError as e:
             self.toasts.error(f"Couldn't open {name}", str(e))
         except Exception as e:  # noqa: BLE001
@@ -552,6 +588,17 @@ def selftest() -> int:
                       tools.MetadataWindow(str(src), n), tools.CompressWindow([str(src)], n),
                       tools.ResizeWindow([str(src)], n), tools.ProtectWindow(str(pdf), n)):
                 w.close()
+            if media.available():
+                clip = Path(d) / "c.mp4"
+                media.run_plain(["-f", "lavfi", "-i", "testsrc=size=160x120:rate=10:duration=2", "-f", "lavfi", "-i",
+                                 "sine=duration=2", "-c:v", "mpeg4", "-c:a", "aac", "-shortest", str(clip)])
+                for w in (media_tools.MediaCompressWindow([str(wav)], n, "audio"),
+                          media_tools.MediaCompressWindow([str(clip)], n, "video"),
+                          media_tools.TrimWindow(str(wav), n, "audio"), media_tools.TrimWindow(str(clip), n, "video"),
+                          media_tools.MediaEditWindow(str(wav), n, "audio"), media_tools.MediaEditWindow(str(clip), n, "video")):
+                    w.close()
+                media.compress_audio(wav, kbps=64)
+                media.trim(clip, 0, 1)
             ToastStack().info("ok", "ok").dismiss()
             check_text_renders()
         print("SELFTEST OK")

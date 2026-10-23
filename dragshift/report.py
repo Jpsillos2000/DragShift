@@ -43,6 +43,29 @@ def pages(path: Path) -> int | None:
         return None
 
 
+def _media_tool_summary(name: str, srcs: list, outs: list, extra: str) -> "Result":
+    o0, src = outs[0], srcs[0]
+    d0, d1 = media.duration(src), media.duration(o0)
+    after = sum(file_size(o) for o in outs if o.is_file())
+    bits = []
+    if name in ("Trim", "Edit") and d0 and d1 and abs(d0 - d1) > 0.2:
+        bits.append(f"{media.human_duration(d0)} → {media.human_duration(d1)}")
+    elif d1 and len(outs) == 1:
+        bits.append(media.human_duration(d1))
+    if name == "Metadata":
+        return Result("Metadata removed", f"{extra} · {o0.name}" if extra else o0.name, outs, srcs,
+                      good="private copy")
+    if name == "Merge":
+        title = f"Joined {len(srcs)} files"
+    else:
+        title = "Trimmed" if name == "Trim" else "Edited"
+    bits += [human_size(after), o0.name]
+    info = media.probe(o0)
+    if info and info.has_video and not info.has_audio and (media.probe(src) or info).has_audio:
+        bits.insert(-1, "no sound")
+    return Result(title, " · ".join(bits), outs, srcs)
+
+
 def size_change(before: int, after: int) -> tuple[str, str]:
     """('2.4 MB → 610 KB', '75% smaller') — second part empty if no meaningful change."""
     text = f"{human_size(before)} → {human_size(after)}"
@@ -102,6 +125,9 @@ def summarize(action: str, srcs: list, outs: list, extra: str = "") -> Result:
                 bits.append("no sound" if src_info and not src_info.has_audio else "no sound in result")
         bits.append(human_size(after))
         return Result(title, " · ".join(bits), outs, srcs)
+
+    if category(src) in ("audio", "video") and name in ("Trim", "Edit", "Merge", "Metadata"):
+        return _media_tool_summary(name, srcs, outs, extra)
 
     if name == "Compress":
         sizes, verdict = size_change(before, after)

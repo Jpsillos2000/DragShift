@@ -74,8 +74,8 @@ You can also right-click a file → **DragShift…**, use **Send to → DragShif
 | SVG | PNG, JPG, WEBP, TIFF, PDF | — |
 | Archives (.zip, .tar, .tar.gz, .tar.xz, .tar.bz2) | any other of those formats | — |
 | Subtitles (.srt, .vtt, .ass) | SRT, VTT, ASS | — |
-| Audio (MP3, WAV, FLAC, M4A, AAC, OGG, OPUS, WMA, AIFF, AC3, APE, MKA… anything FFmpeg can read) | MP3, WAV, FLAC, M4A, AAC, OGG, OPUS, WMA, AIFF | — |
-| Video (MP4, MKV, WEBM, MOV, AVI, WMV, FLV, M4V, MPG, 3GP, TS, VOB… anything FFmpeg can read) | MP4, MKV (instant lossless remux when possible), WEBM, MOV, AVI, GIF, or just the soundtrack as MP3, M4A, WAV or FLAC | — |
+| Audio (MP3, WAV, FLAC, M4A, AAC, OGG, OPUS, WMA, AIFF, AC3, APE, MKA… anything FFmpeg can read) | MP3, WAV, FLAC, M4A, AAC, OGG, OPUS, WMA, AIFF | **Compress** (by bitrate or to a target size, mono option) · **Trim** (waveform, exact cut) · **Edit** (volume, even out loudness, speed, fades, mono) · **Merge** (drop several) · **Metadata** (remove tags) |
+| Video (MP4, MKV, WEBM, MOV, AVI, WMV, FLV, M4V, MPG, 3GP, TS, VOB… anything FFmpeg can read) | MP4, MKV (instant lossless remux when possible), WEBM, MOV, AVI, GIF, or just the soundtrack as MP3, M4A, WAV or FLAC | **Compress** (quality, resolution cap, target size, optional H.265, with a size estimate) · **Trim** (start and end previews; frame-exact or instant keyframe cut) · **Edit** (rotate, mirror, flip, speed, resolution, volume, remove sound) · **Merge** (different sizes and frame rates are fine) · **Metadata** (remove tags and GPS location) |
 
 **Settings** (tray menu): trigger key (Shift, Ctrl or Alt), where results go (next to the original or a `DragShift` subfolder), JPG/WebP quality, PDF → image resolution, and start at login.
 

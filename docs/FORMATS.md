@@ -30,6 +30,10 @@ What the menu offers when you drop each kind of file. A format is never offered 
 
 Without them, everything marked *Built in* still works.
 
+## Tools for audio and video
+
+Audio and video files also get a **Tools** ring (press Shift again, like for images): Compress, Trim, Edit, Merge (when several files are dropped) and Metadata. They never touch the original and need FFmpeg.
+
 ## Notes
 
 - Spreadsheets with several sheets become one CSV, TSV or JSON per sheet; HTML, Markdown, PDF, DOCX and XLSX keep them together.
