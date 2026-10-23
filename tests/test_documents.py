@@ -87,15 +87,15 @@ def test_categories(tmp_path):
 
 # ---------------------------------------------------------------- spreadsheets and data
 def test_csv_conversions(csv_file):
-    j = json.loads(run(csv_file, "JSON")[0].read_text())
+    j = json.loads(run(csv_file, "JSON")[0].read_text(encoding="utf-8"))
     assert j[0] == {"name": "Ana", "age": 31, "city": "Lisboa"}
     assert j[1]["age"] == "0042"          # leading zeros are not numbers
     assert j[2] == {"name": "Silva, J", "age": 28.5, "city": "Faro"}
     import openpyxl
     ws = openpyxl.load_workbook(run(csv_file, "XLSX")[0]).active
     assert ws["B2"].value == 31 and ws["A4"].value == "Silva, J"
-    assert "| name | age | city |" in run(csv_file, "MD")[0].read_text()
-    assert "<td>Lisboa</td>" in run(csv_file, "HTML")[0].read_text()
+    assert "| name | age | city |" in run(csv_file, "MD")[0].read_text(encoding="utf-8")
+    assert "<td>Lisboa</td>" in run(csv_file, "HTML")[0].read_text(encoding="utf-8")
     assert run(csv_file, "TSV")[0].read_text("utf-8-sig").splitlines()[1] == "Ana\t31\tLisboa"
 
 
@@ -143,9 +143,9 @@ def test_never_overwrites(csv_file):
 
 # ---------------------------------------------------------------- Markdown and HTML
 def test_markdown_conversions(md):
-    html = run(md, "HTML")[0].read_text()
+    html = run(md, "HTML")[0].read_text(encoding="utf-8")
     assert "<h1>Title</h1>" in html and "<strong>bold</strong>" in html and "<table>" in html
-    txt = run(md, "TXT")[0].read_text()
+    txt = run(md, "TXT")[0].read_text(encoding="utf-8")
     assert "Title" in txt and "• one" in txt and "print('hi')" in txt and "**" not in txt
     from docx import Document
     d = Document(run(md, "DOCX")[0])
@@ -162,22 +162,22 @@ def test_html_to_markdown_and_text(tmp_path):
                  "<h1>Hello</h1><p>Para <b>bold</b> <a href='http://z'>z</a></p>"
                  "<ul><li>x</li><li>y</li></ul>"
                  "<table><tr><th>h1</th><th>h2</th></tr><tr><td>1</td><td>2</td></tr></table></body></html>")
-    out = run(p, "MD")[0].read_text()
+    out = run(p, "MD")[0].read_text(encoding="utf-8")
     assert "# Hello" in out and "**bold**" in out and "[z](http://z)" in out and "- x" in out
     assert "| h1 | h2 |" in out and "var x" not in out and "p{}" not in out
-    assert "Hello" in run(p, "TXT")[0].read_text()
+    assert "Hello" in run(p, "TXT")[0].read_text(encoding="utf-8")
     assert run(p, "PDF")[0].exists() and run(p, "DOCX")[0].exists()
 
 
 def test_plain_text_to_html(tmp_path):
     p = tmp_path / "n.txt"
     p.write_text("one <two>\n\nthree")
-    assert "one &lt;two&gt;" in convert.convert(p, "text", "HTML")[0].read_text()
+    assert "one &lt;two&gt;" in convert.convert(p, "text", "HTML")[0].read_text(encoding="utf-8")
 
 
 # ---------------------------------------------------------------- slides
 def test_pptx_text(pptx):
-    txt = run(pptx, "TXT")[0].read_text()
+    txt = run(pptx, "TXT")[0].read_text(encoding="utf-8")
     assert "Slide 1: Hello deck" in txt and "• First point" in txt and "Slide 2: Slide two" in txt
 
 
@@ -196,7 +196,7 @@ def test_pptx_with_libreoffice(pptx):
     with pymupdf.open(run(pptx, "PDF")[0]) as d:
         assert d.page_count == 2
     odp = run(pptx, "ODP")[0]
-    assert category(odp) == "slides" and "Hello deck" in run(odp, "TXT")[0].read_text()
+    assert category(odp) == "slides" and "Hello deck" in run(odp, "TXT")[0].read_text(encoding="utf-8")
 
 
 # ---------------------------------------------------------------- word-like files
@@ -207,10 +207,10 @@ def test_odt_and_rtf_without_libreoffice(tmp_path, no_lo):
                    'xmlns:office:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0">'
                    '<office:body><office:text><text:h>Heading</text:h><text:p>Body <text:span>text</text:span>'
                    '</text:p></office:text></office:body></office:document-content>')
-    assert run(odt, "TXT")[0].read_text() == "Heading\nBody text"
+    assert run(odt, "TXT")[0].read_text(encoding="utf-8") == "Heading\nBody text"
     rtf = tmp_path / "b.rtf"
     rtf.write_text(r"{\rtf1\ansi Hello {\b bold} world\par Second line}")
-    assert "Hello bold world" in run(rtf, "TXT")[0].read_text()
+    assert "Hello bold world" in run(rtf, "TXT")[0].read_text(encoding="utf-8")
     from docx import Document
     assert any("Second line" in p.text for p in Document(run(rtf, "DOCX")[0]).paragraphs)
     assert run(rtf, "PDF")[0].exists()
@@ -224,11 +224,11 @@ def test_word_formats_with_libreoffice(md):
     for target in ("ODT", "RTF", "DOC"):
         out = run(docx, target)[0]
         assert category(out) == "word"
-        assert "Title" in run(out, "TXT")[0].read_text()
+        assert "Title" in run(out, "TXT")[0].read_text(encoding="utf-8")
     doc = run(docx, "DOC")[0]
     assert "DOCX" in convert.targets_for("word", ".doc") and run(doc, "PDF")[0].exists()
-    assert "Title" in run(docx, "HTML")[0].read_text()
-    assert "Title" in run(docx, "MD")[0].read_text()
+    assert "Title" in run(docx, "HTML")[0].read_text(encoding="utf-8")
+    assert "Title" in run(docx, "MD")[0].read_text(encoding="utf-8")
 
 
 @needs_lo
@@ -266,8 +266,8 @@ def test_ebook_and_svg(tmp_path):
     assert I.open(run(svg, "JPG")[0]).mode == "RGB"
     assert run(svg, "PDF")[0].exists()
     # PDF extras
-    assert "Chapter one" in run(pdf, "HTML")[0].read_text()
-    assert run(pdf, "SVG")[0].read_text().startswith("<svg")
+    assert "Chapter one" in run(pdf, "HTML")[0].read_text(encoding="utf-8")
+    assert run(pdf, "SVG")[0].read_text(encoding="utf-8").startswith("<svg")
 
 
 # ---------------------------------------------------------------- archives
@@ -306,10 +306,10 @@ def test_subtitles(tmp_path):
     srt = tmp_path / "Subs.srt"
     srt.write_text("1\n00:00:01,000 --> 00:00:02,500\nHello\n\n2\n00:00:03,000 --> 00:00:04,000\nWorld\n")
     vtt = run(srt, "VTT")[0]
-    assert vtt.read_text().startswith("WEBVTT") and "Hello" in vtt.read_text()
+    assert vtt.read_text(encoding="utf-8").startswith("WEBVTT") and "Hello" in vtt.read_text(encoding="utf-8")
     back = run(vtt, "SRT")[0]
-    assert "00:00:01,000 --> 00:00:02,500" in back.read_text()
-    assert "Dialogue" in run(srt, "ASS")[0].read_text()
+    assert "00:00:01,000 --> 00:00:02,500" in back.read_text(encoding="utf-8")
+    assert "Dialogue" in run(srt, "ASS")[0].read_text(encoding="utf-8")
 
 
 def test_existing_text_and_docx_conversions_unchanged(tmp_path):
@@ -318,4 +318,4 @@ def test_existing_text_and_docx_conversions_unchanged(tmp_path):
     assert convert.targets_for("text", ".txt") == ["PDF", "DOCX", "HTML"]
     docx = convert.convert(t, "text", "DOCX")[0]
     assert convert.targets_for("docx", ".docx")[:2] == ["PDF", "TXT"]
-    assert convert.convert(docx, "docx", "TXT")[0].read_text().strip() == "hello"
+    assert convert.convert(docx, "docx", "TXT")[0].read_text(encoding="utf-8").strip() == "hello"

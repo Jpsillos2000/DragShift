@@ -181,3 +181,18 @@ def test_unusual_extension_still_works(video, tmp_path):
     ff("-f", "lavfi", "-i", "sine=duration=3", "-c:a", "libmp3lame", "-f", "mp3", str(audio))
     assert media.probe(media.trim(audio, 0.5, 2.0)).has_audio
     assert media.strip_metadata(audio)[0].suffix == ".mka"
+
+
+def test_odd_file_names_and_unprintable_console(video, tmp_path, monkeypatch):
+    import sys
+    name = tmp_path / "Férias 日本語 😀.mp4"
+    name.write_bytes(video.read_bytes())
+    class Broken:                                    # a console that can't encode what we print
+        def write(self, s):
+            raise UnicodeEncodeError("cp1252", s, 0, 1, "can't encode")
+        def flush(self):
+            pass
+    monkeypatch.setattr(sys, "stderr", Broken())
+    out = media.trim(name, 0, 2)
+    assert out.exists() and media.probe(out).has_video
+    assert media.compress_audio(name, kbps=64).exists()

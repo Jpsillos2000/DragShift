@@ -70,6 +70,15 @@ _VIDEO_ENCODER = {"MP4": "libx264", "MKV": "libx264", "MOV": "libx264", "WEBM": 
 _NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)  # no console flash from the windowed exe
 
 
+def _log(msg: str) -> None:
+    """Diagnostics go to stderr (the app's log file). A file name the console can't encode must never
+    abort a conversion, so any failure to print is ignored."""
+    try:
+        print(msg, file=sys.stderr)
+    except Exception:  # noqa: BLE001
+        pass
+
+
 # ---------------------------------------------------------------- locating FFmpeg
 @lru_cache(maxsize=1)
 def find_ffmpeg() -> str | None:
@@ -266,9 +275,8 @@ def convert_media(src: str | Path, cat: str, target: str) -> list[Path]:
         last = ""
         for codec in attempts:
             r = _run(["-y", "-i", str(src), *maps, *codec, "-f", muxer, str(tmp)])
-            print(f"[media] {src.name} -> {target} (video={info.has_video if info else '?'}, "
-                  f"audio={info.has_audio if info else '?'}) {' '.join(codec[:6])}… exit={r.returncode}",
-                  file=sys.stderr)
+            _log(f"[media] {src.name} -> {target} (video={info.has_video if info else '?'}, "
+                 f"audio={info.has_audio if info else '?'}) {' '.join(codec[:6])}… exit={r.returncode}")
             ok = r.returncode == 0 and tmp.exists() and tmp.stat().st_size > 0
             if ok and not to_audio and target != "GIF" and info and info.has_audio:
                 got = _probe(str(tmp), tmp.stat().st_mtime)
@@ -380,7 +388,7 @@ def _finish(src: Path, label: str, ext: str, attempts: list[list[str]], expect_a
     try:
         for args in attempts:
             r = _run(["-y", *args, str(tmp)])
-            print(f"[media] {src.name} -> {label or 'edit'} exit={r.returncode}", file=sys.stderr)
+            _log(f"[media] {src.name} -> {label or 'edit'} exit={r.returncode}")
             if r.returncode == 0 and tmp.exists() and tmp.stat().st_size > 0:
                 if expect_audio:
                     got = _probe(str(tmp), tmp.stat().st_mtime)
