@@ -232,6 +232,9 @@ def convert_media(src: str | Path, cat: str, target: str) -> list[Path]:
         last = ""
         for codec in attempts:
             r = _run(["-y", "-i", str(src), *maps, *codec, "-f", muxer, str(tmp)])
+            print(f"[media] {src.name} -> {target} (video={info.has_video if info else '?'}, "
+                  f"audio={info.has_audio if info else '?'}) {' '.join(codec[:6])}… exit={r.returncode}",
+                  file=sys.stderr)
             ok = r.returncode == 0 and tmp.exists() and tmp.stat().st_size > 0
             if ok and not to_audio and target != "GIF" and info and info.has_audio:
                 got = _probe(str(tmp), tmp.stat().st_mtime)
