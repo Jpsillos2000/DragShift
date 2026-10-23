@@ -476,9 +476,11 @@ class RadialMenu(QWidget):
         f.setPixelSize(10)
         f.setBold(False)
         p.setFont(f)
-        from . import media
-        hint = ("Install FFmpeg for audio/video" if ext in media.AUDIO_EXTS | media.VIDEO_EXTS
-                and not media.available() else "Images · Docs · Audio · Video")
+        from . import documents, media
+        need = documents.missing_tool(ext)
+        if need is None and ext in media.AUDIO_EXTS | media.VIDEO_EXTS and not media.available():
+            need = "FFmpeg"
+        hint = f"Install {need} for {ext}" if need else "Images · Docs · Sheets · Audio · Video"
         self._text(p, QRectF(c.x() - R_OUT, c.y() - r_mid + 1, 2 * R_OUT, 16), hint, fg_dim, None)
 
     def _paint_fallback(self, p: QPainter, c: QPointF, n: int):

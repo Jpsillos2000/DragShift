@@ -19,9 +19,12 @@ def category(path: str | Path) -> str | None:
         return "pdf"
     if ext in DOCX_EXTS:
         return "docx"
+    from . import documents, media
+    doc = documents.category_for(path)
+    if doc:
+        return doc
     if ext in TEXT_EXTS:
         return "text"
-    from . import media
     return media.kind(path)
 
 

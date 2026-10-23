@@ -5,6 +5,10 @@ from PyInstaller.utils.hooks import collect_all
 onefile = os.environ.get("ONEFILE") == "1"
 heif_datas, heif_bins, heif_hidden = collect_all("pillow_heif")
 ff_datas, ff_bins, ff_hidden = collect_all("imageio_ffmpeg")  # bundled FFmpeg for audio/video
+# document converters: python-pptx ships a template, markdown loads its extensions by name
+for _pkg in ("pptx", "openpyxl", "markdown", "striprtf"):
+    _d, _b, _h = collect_all(_pkg)
+    ff_datas, ff_bins, ff_hidden = ff_datas + _d, ff_bins + _b, ff_hidden + _h
 
 a = Analysis(
     ["run.py"],

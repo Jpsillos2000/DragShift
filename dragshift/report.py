@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from . import media
+from . import documents, media
 from .util import category, file_size, human_size
 
 
@@ -78,11 +78,12 @@ def summarize(action: str, srcs: list, outs: list, extra: str = "") -> Result:
             title = f"{len(srcs)} files → 1 {fmt}"
         elif len(outs) > 1 and len(srcs) == 1:
             n = pages(src)
-            title = f"{n or len(outs)} pages → {len(outs)} {fmt}s"
+            unit = {"sheet": "sheets", "slides": "slides"}.get(category(src), "pages")
+            title = f"{n or len(outs)} {unit} → {len(outs)} {fmt}s"
         elif len(outs) > 1:
             title = f"{len(outs)} files → {fmt}"
         else:
-            title = f"{src.suffix.lstrip('.').upper()} → {fmt}"
+            title = f"{documents.source_format(src)} → {fmt}"
         bits = [o0.name if len(outs) == 1 else f"{o0.parent.name}/{o0.name} …"]
         d = dims(o0) if category(o0) == "image" else None
         if d:

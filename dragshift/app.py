@@ -14,7 +14,7 @@ from PySide6.QtGui import (QAction, QColor, QCursor, QDesktopServices, QGuiAppli
 from PySide6.QtNetwork import QLocalServer, QLocalSocket
 from PySide6.QtWidgets import QApplication, QFileDialog, QMenu, QSystemTrayIcon, QWidget
 
-from . import __version__, convert, glass, imaging, media, report, tools
+from . import __version__, convert, documents, glass, imaging, media, report, tools
 from .radial import Item, RadialMenu
 from .settings import Settings, SettingsWindow, WelcomeWindow, TRIGGERS
 from .toasts import ToastStack
@@ -48,7 +48,13 @@ FORMAT_HINTS = {"JPG": "Small, universal", "PNG": "Lossless · transparency", "W
                 "M4A": "AAC · Apple", "AAC": "Raw AAC", "OGG": "Vorbis", "OPUS": "Small · speech",
                 "WMA": "Windows audio", "AIFF": "Apple · uncompressed",
                 "MP4": "H.264 · plays anywhere", "MKV": "Lossless remux", "WEBM": "VP9 · web",
-                "MOV": "QuickTime", "AVI": "Legacy video"}
+                "MOV": "QuickTime", "AVI": "Legacy video",
+                "CSV": "Plain table", "TSV": "Tab-separated", "JSON": "Data", "XLSX": "Excel", "XLS": "Old Excel",
+                "ODS": "LibreOffice Calc", "HTML": "Web page", "MD": "Markdown", "PPTX": "PowerPoint",
+                "PPT": "Old PowerPoint", "ODP": "LibreOffice Impress", "ODT": "LibreOffice Writer",
+                "RTF": "Rich text", "DOC": "Old Word", "SVG": "Vector", "ZIP": "Universal archive",
+                "TAR": "Unix archive", "TAR.GZ": "Gzip tarball", "TAR.XZ": "Smallest tarball",
+                "TAR.BZ2": "Bzip2 tarball", "SRT": "Subtitles", "VTT": "Web subtitles", "ASS": "Styled subtitles"}
 
 IMAGE_TOOLS = ["Compress", "Resize", "Crop", "Edit", "Annotate", "Redact", "Add BG", "Metadata"]
 PDF_TOOLS = ["Compress", "Split", "Rotate", "Protect", "Extract", "Metadata"]
@@ -242,7 +248,7 @@ class DragShiftApp(QObject):
         cat = category(paths[0])
         if cat is None:
             return {"Unsupported": []}
-        ext = Path(paths[0]).suffix
+        ext = documents.full_suffix(paths[0])
         same = [p for p in paths if category(p) == cat]
         convert_items = []
         for t in convert.targets_for(cat, ext):
@@ -516,6 +522,15 @@ def selftest() -> int:
             pdf = convert.convert(src, "image", "PDF")[0]
             for t in convert.PDF_TARGETS:
                 convert.convert(pdf, "pdf", t)
+            md = Path(d) / "n.md"
+            md.write_text("# Hi\n\n- a\n- b\n")
+            for t in convert.targets_for("markdown", ".md"):
+                convert.convert(md, "markdown", t)
+            csvf = Path(d) / "t.csv"
+            csvf.write_text("a,b\n1,2\n")
+            for t in convert.targets_for("sheet", ".csv"):
+                if t not in ("ODS", "XLS"):  # these need LibreOffice
+                    convert.convert(csvf, "sheet", t)
             if media.available():
                 wav = Path(d) / "t.wav"
                 wav.write_bytes(media.silent_wav())
